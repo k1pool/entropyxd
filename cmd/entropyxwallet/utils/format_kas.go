@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// FormatKas takes the amount of sompis as uint64, and returns amount of BGA with 8  decimal places
+// FormatKas takes the amount of sompis as uint64, and returns amount of ENX with 8  decimal places
 func FormatKas(amount uint64) string {
 	res := "                   "
 	if amount > 0 {
@@ -22,7 +22,7 @@ func FormatKas(amount uint64) string {
 
 // KasToSompi takes in a string representation of the Kas value to convert to Sompi
 func KasToSompi(amount string) (uint64, error) {
-	err := validateBGAAmountFormat(amount)
+	err := validateENXAmountFormat(amount)
 
 	if err != nil {
 		return 0, err
@@ -52,7 +52,7 @@ func KasToSompi(amount string) (uint64, error) {
 	return convertedAmount, err
 }
 
-func validateBGAAmountFormat(amount string) error {
+func validateENXAmountFormat(amount string) error {
 	// Check whether it's an integer, or a float with max 8 digits
 	match, err := regexp.MatchString("^([1-9]\\d{0,11}|0)(\\.\\d{0,8})?$", amount)
 

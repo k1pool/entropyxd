@@ -21,33 +21,33 @@ type AmountUnit int
 // These constants define various units used when describing a entropyx
 // monetary amount.
 const (
-	AmountMegaBGA  AmountUnit = 6
-	AmountKiloBGA  AmountUnit = 3
-	AmountBGA      AmountUnit = 0
-	AmountMilliBGA AmountUnit = -3
-	AmountMicroBGA AmountUnit = -6
+	AmountMegaENX  AmountUnit = 6
+	AmountKiloENX  AmountUnit = 3
+	AmountENX      AmountUnit = 0
+	AmountMilliENX AmountUnit = -3
+	AmountMicroENX AmountUnit = -6
 	AmountSompi    AmountUnit = -8
 )
 
 // String returns the unit as a string. For recognized units, the SI
 // prefix is used, or "Sompi" for the base unit. For all unrecognized
-// units, "1eN BGA" is returned, where N is the AmountUnit.
+// units, "1eN ENX" is returned, where N is the AmountUnit.
 func (u AmountUnit) String() string {
 	switch u {
-	case AmountMegaBGA:
-		return "MBGA"
-	case AmountKiloBGA:
-		return "kBGA"
-	case AmountBGA:
-		return "BGA"
-	case AmountMilliBGA:
-		return "mBGA"
-	case AmountMicroBGA:
-		return "μBGA"
+	case AmountMegaENX:
+		return "MENX"
+	case AmountKiloENX:
+		return "kENX"
+	case AmountENX:
+		return "ENX"
+	case AmountMilliENX:
+		return "mENX"
+	case AmountMicroENX:
+		return "μENX"
 	case AmountSompi:
 		return "Sompi"
 	default:
-		return "1e" + strconv.FormatInt(int64(u), 10) + " BGA"
+		return "1e" + strconv.FormatInt(int64(u), 10) + " ENX"
 	}
 }
 
@@ -71,10 +71,10 @@ func round(f float64) Amount {
 // does not check that the amount is within the total amount of entropyx
 // producible as f may not refer to an amount at a single moment in time.
 //
-// NewAmount is for specifically for converting BGA to Sompi.
+// NewAmount is for specifically for converting ENX to Sompi.
 // For creating a new Amount with an int64 value which denotes a quantity of Sompi,
 // do a simple type conversion from type int64 to Amount.
-// TODO: Refactor NewAmount. When amounts are more than 1e9 BGA, the precision
+// TODO: Refactor NewAmount. When amounts are more than 1e9 ENX, the precision
 // can be higher than one sompi (1e9 and 1e9+1e-8 will result as the same number)
 func NewAmount(f float64) (Amount, error) {
 	// The amount is only considered invalid if it cannot be represented
@@ -97,9 +97,9 @@ func (a Amount) ToUnit(u AmountUnit) float64 {
 	return float64(a) / math.Pow10(int(u+8))
 }
 
-// ToBGA is the equivalent of calling ToUnit with AmountBGA.
-func (a Amount) ToBGA() float64 {
-	return a.ToUnit(AmountBGA)
+// ToENX is the equivalent of calling ToUnit with AmountENX.
+func (a Amount) ToENX() float64 {
+	return a.ToUnit(AmountENX)
 }
 
 // Format formats a monetary amount counted in entropyx base units as a
@@ -111,9 +111,9 @@ func (a Amount) Format(u AmountUnit) string {
 	return strconv.FormatFloat(a.ToUnit(u), 'f', -int(u+8), 64) + units
 }
 
-// String is the equivalent of calling Format with AmountBGA.
+// String is the equivalent of calling Format with AmountENX.
 func (a Amount) String() string {
-	return a.Format(AmountBGA)
+	return a.Format(AmountENX)
 }
 
 // MulF64 multiplies an Amount by a floating point value. While this is not

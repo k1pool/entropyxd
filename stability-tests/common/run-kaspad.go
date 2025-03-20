@@ -17,7 +17,7 @@ func RunEntropyxdForTesting(t *testing.T, testName string, rpcAddress string) fu
 		t.Fatalf("TempDir: %s", err)
 	}
 
-	entropyxdRunCommand, err := StartCmd("BGAPAD",
+	entropyxdRunCommand, err := StartCmd("ENXPAD",
 		"entropyxd",
 		NetworkCliArgumentFromNetParams(&dagconfig.DevnetParams),
 		"--appdir", appDir,

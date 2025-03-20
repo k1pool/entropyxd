@@ -109,7 +109,7 @@ func startNode() (teardown func(), err error) {
 	}
 	log.Infof("entropyxd datadir: %s", dataDir)
 
-	entropyxdCmd, err := common.StartCmd("BGAPAD",
+	entropyxdCmd, err := common.StartCmd("ENXPAD",
 		"entropyxd",
 		common.NetworkCliArgumentFromNetParams(activeConfig().NetParams()),
 		"--appdir", dataDir,

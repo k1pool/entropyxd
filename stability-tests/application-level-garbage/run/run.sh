@@ -2,11 +2,11 @@
 rm -rf /tmp/entropyxd-temp
 
 entropyxd --devnet --appdir=/tmp/entropyxd-temp --profile=6061 --loglevel=debug &
-BGAPAD_PID=$!
-BGAPAD_KILLED=0
+ENXPAD_PID=$!
+ENXPAD_KILLED=0
 function killEntropyxdIfNotKilled() {
-    if [ $BGAPAD_KILLED -eq 0 ]; then
-      kill $BGAPAD_PID
+    if [ $ENXPAD_KILLED -eq 0 ]; then
+      kill $ENXPAD_PID
     fi
 }
 trap "killEntropyxdIfNotKilled" EXIT
@@ -16,16 +16,16 @@ sleep 1
 application-level-garbage --devnet -alocalhost:16611 -b blocks.dat --profile=7000
 TEST_EXIT_CODE=$?
 
-kill $BGAPAD_PID
+kill $ENXPAD_PID
 
-wait $BGAPAD_PID
-BGAPAD_KILLED=1
-BGAPAD_EXIT_CODE=$?
+wait $ENXPAD_PID
+ENXPAD_KILLED=1
+ENXPAD_EXIT_CODE=$?
 
 echo "Exit code: $TEST_EXIT_CODE"
-echo "Entropyxd exit code: $BGAPAD_EXIT_CODE"
+echo "Entropyxd exit code: $ENXPAD_EXIT_CODE"
 
-if [ $TEST_EXIT_CODE -eq 0 ] && [ $BGAPAD_EXIT_CODE -eq 0 ]; then
+if [ $TEST_EXIT_CODE -eq 0 ] && [ $ENXPAD_EXIT_CODE -eq 0 ]; then
   echo "application-level-garbage test: PASSED"
   exit 0
 fi

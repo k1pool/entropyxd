@@ -21,9 +21,9 @@ func ExampleAmount() {
 	a = util.Amount(1e5)
 	fmt.Println("100,000 Sompi:", a)
 	// Output:
-	// Zero Sompi: 0 BGA
-	// 100,000,000 Sompi: 1 BGA
-	// 100,000 Sompi: 0.001 BGA
+	// Zero Sompi: 0 ENX
+	// 100,000,000 Sompi: 1 ENX
+	// 100,000 Sompi: 0.001 ENX
 }
 
 func ExampleNewAmount() {
@@ -55,26 +55,26 @@ func ExampleNewAmount() {
 	}
 	fmt.Println(amountNaN) //Output 4
 
-	// Output: 1 BGA
-	// 0.01234567 BGA
-	// 0 BGA
+	// Output: 1 ENX
+	// 0.01234567 ENX
+	// 0 ENX
 	// invalid entropyx amount
 }
 
 func ExampleAmount_unitConversions() {
 	amount := util.Amount(44433322211100)
 
-	fmt.Println("Sompi to kBGA:", amount.Format(util.AmountKiloBGA))
-	fmt.Println("Sompi to BGA:", amount)
-	fmt.Println("Sompi to MilliBGA:", amount.Format(util.AmountMilliBGA))
-	fmt.Println("Sompi to MicroBGA:", amount.Format(util.AmountMicroBGA))
+	fmt.Println("Sompi to kENX:", amount.Format(util.AmountKiloENX))
+	fmt.Println("Sompi to ENX:", amount)
+	fmt.Println("Sompi to MilliENX:", amount.Format(util.AmountMilliENX))
+	fmt.Println("Sompi to MicroENX:", amount.Format(util.AmountMicroENX))
 	fmt.Println("Sompi to Sompi:", amount.Format(util.AmountSompi))
 
 	// Output:
-	// Sompi to kBGA: 444.333222111 kBGA
-	// Sompi to BGA: 444333.222111 BGA
-	// Sompi to MilliBGA: 444333222.111 mBGA
-	// Sompi to MicroBGA: 444333222111 μBGA
+	// Sompi to kENX: 444.333222111 kENX
+	// Sompi to ENX: 444333.222111 ENX
+	// Sompi to MilliENX: 444333222.111 mENX
+	// Sompi to MicroENX: 444333222111 μENX
 	// Sompi to Sompi: 44433322211100 Sompi
 }
 

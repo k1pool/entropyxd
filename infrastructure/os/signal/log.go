@@ -8,4 +8,4 @@ import (
 	"github.com/k1pool/entropyxd/infrastructure/logger"
 )
 
-var bgadLog = logger.RegisterSubSystem("BGAD")
+var bgadLog = logger.RegisterSubSystem("ENXD")

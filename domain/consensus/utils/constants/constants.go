@@ -12,7 +12,7 @@ const (
 	// MaxScriptPublicKeyVersion is the current latest supported public key script version.
 	MaxScriptPublicKeyVersion uint16 = 0
 
-	// SompiPerEntropyx is the number of sompi in one entropyx (1 BGA).
+	// SompiPerEntropyx is the number of sompi in one entropyx (1 ENX).
 	SompiPerEntropyx = 100_000_000
 
 	// MaxSompi is the maximum transaction amount allowed in sompi.
