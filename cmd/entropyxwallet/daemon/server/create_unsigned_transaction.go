@@ -296,7 +296,7 @@ func (s *server) selectUTXOsWithPreselected(preSelectedUTXOs []*walletUTXO, allo
 		}
 
 		fee, err = s.estimateFee(selectedUTXOs, feeRate, maxFee, estimatedRecipientValue, addresses, amounts)
-		fee += burnFee
+		fee += burnFee + 50
 
 		if err != nil {
 			return false, err
