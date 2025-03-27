@@ -1,0 +1,460 @@
+package server
+
+import (
+	"context"
+	"fmt"
+	"math"
+
+	"github.com/k1pool/entropyxd/cmd/entropyxwallet/daemon/pb"
+	"github.com/k1pool/entropyxd/cmd/entropyxwallet/libentropyxwallet"
+	"github.com/k1pool/entropyxd/domain/consensus/model/externalapi"
+	"github.com/k1pool/entropyxd/domain/consensus/utils/constants"
+	"github.com/k1pool/entropyxd/domain/consensus/utils/utxo"
+	"github.com/k1pool/entropyxd/util"
+	"github.com/pkg/errors"
+)
+
+// The minimal change amount to target in order to avoid large storage mass (see KIP9 for more details).
+// By having at least 10ENX in the change output we make sure that the storage mass charged for change is
+// at most 1000 gram. Generally, if the payment is above 10ENX as well, the resulting storage mass will be
+// in the order of magnitude of compute mass and wil not incur additional charges.
+// Additionally, every transaction with send value > ~0.1 ENX should succeed (at most ~99K storage mass for payment
+// output, thus overall lower than standard mass upper bound which is 100K gram)
+const minChangeTarget = constants.SompiPerEntropyx * 10
+
+// The current minimal fee rate according to mempool standards
+const minFeeRate = 1.0
+const burnFee = constants.SompiPerEntropyx * 210
+
+func (s *server) CreateUnsignedTransactions(_ context.Context, request *pb.CreateUnsignedTransactionsRequest) (
+	*pb.CreateUnsignedTransactionsResponse, error,
+) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	unsignedTransactions, err := s.createUnsignedTransactions(request.Address, request.Amount, request.IsSendAll,
+		request.From, request.UseExistingChangeAddress, request.FeePolicy)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.CreateUnsignedTransactionsResponse{UnsignedTransactions: unsignedTransactions}, nil
+}
+
+func (s *server) CreateUnsignedMultiTransactions(_ context.Context, request *pb.CreateUnsignedMultiTransactionsRequest) (
+	*pb.CreateUnsignedTransactionsResponse, error,
+) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	unsignedTransactions, err := s.createUnsignedMultiTransactions(request.Address, request.Amount, request.IsSendAll,
+		request.From, request.UseExistingChangeAddress, request.FeePolicy)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.CreateUnsignedTransactionsResponse{UnsignedTransactions: unsignedTransactions}, nil
+}
+
+func (s *server) calculateFeeLimits(requestFeePolicy *pb.FeePolicy) (feeRate float64, maxFee uint64, err error) {
+	feeRate = minFeeRate
+	maxFee = math.MaxUint64
+
+	if requestFeePolicy == nil {
+		requestFeePolicy = &pb.FeePolicy{}
+	}
+
+	switch requestFeePolicy := requestFeePolicy.FeePolicy.(type) {
+	case *pb.FeePolicy_ExactFeeRate:
+		feeRate = requestFeePolicy.ExactFeeRate
+		if feeRate < minFeeRate {
+			return 0, 0, errors.Errorf("requested fee rate %f is too low, minimum fee rate is %f", feeRate, minFeeRate)
+		}
+	case *pb.FeePolicy_MaxFeeRate:
+		estimate, err := s.rpcClient.GetFeeEstimate()
+		if err != nil {
+			return 0, 0, err
+		}
+		if requestFeePolicy.MaxFeeRate < minFeeRate {
+			return 0, 0, errors.Errorf("requested max fee rate %f is too low, minimum fee rate is %f", requestFeePolicy.MaxFeeRate, minFeeRate)
+		}
+		feeRate = math.Min(estimate.Estimate.NormalBuckets[0].Feerate, requestFeePolicy.MaxFeeRate)
+	case *pb.FeePolicy_MaxFee:
+		estimate, err := s.rpcClient.GetFeeEstimate()
+		if err != nil {
+			return 0, 0, err
+		}
+		feeRate = estimate.Estimate.NormalBuckets[0].Feerate
+		maxFee = requestFeePolicy.MaxFee
+	case nil:
+		estimate, err := s.rpcClient.GetFeeEstimate()
+		if err != nil {
+			return 0, 0, err
+		}
+		feeRate = estimate.Estimate.NormalBuckets[0].Feerate
+		// Default to a bound of max 1 ENX as fee
+		maxFee = constants.SompiPerEntropyx
+	}
+
+	return feeRate, maxFee, nil
+}
+
+func (s *server) createUnsignedTransactions(address string, amount uint64, isSendAll bool, fromAddressesString []string, useExistingChangeAddress bool, requestFeePolicy *pb.FeePolicy) ([][]byte, error) {
+	if !s.isSynced() {
+		return nil, errors.Errorf("wallet daemon is not synced yet, %s", s.formatSyncStateReport())
+	}
+
+	feeRate, maxFee, err := s.calculateFeeLimits(requestFeePolicy)
+	if err != nil {
+		return nil, err
+	}
+
+	// make sure address string is correct before proceeding to a
+	// potentially long UTXO refreshment operation
+	toAddress, err := util.DecodeAddress(address, s.params.Prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	var fromAddresses []*walletAddress
+	for _, from := range fromAddressesString {
+		fromAddress, exists := s.addressSet[from]
+		if !exists {
+			return nil, fmt.Errorf("specified from address %s does not exists", from)
+		}
+		fromAddresses = append(fromAddresses, fromAddress)
+	}
+
+	changeAddress, changeWalletAddress, err := s.changeAddress(useExistingChangeAddress, fromAddresses)
+	if err != nil {
+		return nil, err
+	}
+
+	selectedUTXOs, spendValue, changeSompi, err := s.selectUTXOs(amount, isSendAll, feeRate, maxFee, burnFee, fromAddresses)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(selectedUTXOs) == 0 {
+		return nil, errors.Errorf("couldn't find funds to spend")
+	}
+
+	payments := []*libentropyxwallet.Payment{{
+		Address: toAddress,
+		Amount:  spendValue,
+	}}
+	if changeSompi > 0 {
+		payments = append(payments, &libentropyxwallet.Payment{
+			Address: changeAddress,
+			Amount:  changeSompi,
+		})
+	}
+	unsignedTransaction, err := libentropyxwallet.CreateUnsignedTransaction(s.keysFile.ExtendedPublicKeys,
+		s.keysFile.MinimumSignatures,
+		payments, selectedUTXOs)
+	if err != nil {
+		return nil, err
+	}
+
+	unsignedTransactions, err := s.maybeAutoCompoundTransaction(unsignedTransaction, toAddress, changeAddress, changeWalletAddress, feeRate, maxFee, false)
+	if err != nil {
+		return nil, err
+	}
+	return unsignedTransactions, nil
+}
+
+func (s *server) createUnsignedMultiTransactions(addresses []string, amounts []uint64, isSendAll bool, fromAddressesString []string, useExistingChangeAddress bool, requestFeePolicy *pb.FeePolicy) ([][]byte, error) {
+	if !s.isSynced() {
+		return nil, errors.Errorf("wallet daemon is not synced yet, %s", s.formatSyncStateReport())
+	}
+
+	feeRate, maxFee, err := s.calculateFeeLimits(requestFeePolicy)
+	if err != nil {
+		return nil, err
+	}
+
+	// make sure 1st address string is correct before proceeding to a
+	// potentially long UTXO refreshment operation
+	toAddress, err := util.DecodeAddress(addresses[0], s.params.Prefix)
+	if err != nil {
+		return nil, err
+	}
+
+	var totalAmount uint64
+	totalAmount = 0
+	for _, a := range amounts {
+		totalAmount += a
+	}
+
+	var fromAddresses []*walletAddress
+	for _, from := range fromAddressesString {
+		fromAddress, exists := s.addressSet[from]
+		if !exists {
+			return nil, fmt.Errorf("specified from address %s does not exists", from)
+		}
+		fromAddresses = append(fromAddresses, fromAddress)
+	}
+
+	changeAddress, changeWalletAddress, err := s.changeAddress(useExistingChangeAddress, fromAddresses)
+	if err != nil {
+		return nil, err
+	}
+
+	selectedUTXOs, _, changeSompi, err := s.selectUTXOs(totalAmount, isSendAll, feeRate, maxFee, burnFee, fromAddresses)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(selectedUTXOs) == 0 {
+		return nil, errors.Errorf("couldn't find funds to spend")
+	}
+
+	var payments []*libentropyxwallet.Payment
+	for i, to := range addresses {
+		toAddr, err := util.DecodeAddress(to, s.params.Prefix)
+		if err != nil {
+			return nil, err
+		}
+		payments = append(payments, &libentropyxwallet.Payment{
+			Address: toAddr,
+			Amount:  amounts[i],
+		})
+	}
+
+	if changeSompi > 0 {
+		payments = append(payments, &libentropyxwallet.Payment{
+			Address: changeAddress,
+			Amount:  changeSompi,
+		})
+	}
+	unsignedTransaction, err := libentropyxwallet.CreateUnsignedTransaction(s.keysFile.ExtendedPublicKeys,
+		s.keysFile.MinimumSignatures,
+		payments, selectedUTXOs)
+	if err != nil {
+		return nil, err
+	}
+
+	unsignedTransactions, err := s.maybeAutoCompoundTransaction(unsignedTransaction, toAddress, changeAddress, changeWalletAddress, feeRate, maxFee, true)
+	if err != nil {
+		return nil, err
+	}
+	return unsignedTransactions, nil
+}
+
+func (s *server) selectUTXOs(spendAmount uint64, isSendAll bool, feeRate float64, maxFee uint64, burnFee uint64, fromAddresses []*walletAddress) (
+	selectedUTXOs []*libentropyxwallet.UTXO, totalReceived uint64, changeSompi uint64, err error) {
+	return s.selectUTXOsWithPreselected(nil, map[externalapi.DomainOutpoint]struct{}{}, spendAmount, isSendAll, feeRate, maxFee, burnFee, fromAddresses)
+}
+
+func (s *server) selectUTXOsWithPreselected(preSelectedUTXOs []*walletUTXO, allowUsed map[externalapi.DomainOutpoint]struct{}, spendAmount uint64, isSendAll bool, feeRate float64, maxFee uint64, burnFee uint64, fromAddresses []*walletAddress) (
+	selectedUTXOs []*libentropyxwallet.UTXO, totalReceived uint64, changeSompi uint64, err error) {
+
+	preSelectedSet := make(map[externalapi.DomainOutpoint]struct{})
+	for _, utxo := range preSelectedUTXOs {
+		preSelectedSet[*utxo.Outpoint] = struct{}{}
+	}
+	totalValue := uint64(0)
+
+	dagInfo, err := s.rpcClient.GetBlockDAGInfo()
+	if err != nil {
+		return nil, 0, 0, err
+	}
+
+	var fee uint64
+	iteration := func(utxo *walletUTXO, avoidPreselected bool) (bool, error) {
+		if (fromAddresses != nil && !walletAddressesContain(fromAddresses, utxo.address)) ||
+			!s.isUTXOSpendable(utxo, dagInfo.VirtualDAAScore) {
+			return true, nil
+		}
+
+		if broadcastTime, ok := s.usedOutpoints[*utxo.Outpoint]; ok {
+			if _, ok := allowUsed[*utxo.Outpoint]; !ok {
+				if s.usedOutpointHasExpired(broadcastTime) {
+					delete(s.usedOutpoints, *utxo.Outpoint)
+				} else {
+					return true, nil
+				}
+			}
+		}
+
+		if avoidPreselected {
+			if _, ok := preSelectedSet[*utxo.Outpoint]; ok {
+				return true, nil
+			}
+		}
+
+		selectedUTXOs = append(selectedUTXOs, &libentropyxwallet.UTXO{
+			Outpoint:       utxo.Outpoint,
+			UTXOEntry:      utxo.UTXOEntry,
+			DerivationPath: s.walletAddressPath(utxo.address),
+		})
+
+		totalValue += utxo.UTXOEntry.Amount()
+		estimatedRecipientValue := spendAmount
+		if isSendAll {
+			estimatedRecipientValue = totalValue
+		}
+
+		fee, err = s.estimateFee(selectedUTXOs, feeRate, maxFee, estimatedRecipientValue)
+		fee += burnFee
+
+		if err != nil {
+			return false, err
+		}
+
+		totalSpend := spendAmount + fee
+		// Two break cases (if not send all):
+		// 		1. totalValue == totalSpend, so there's no change needed -> number of outputs = 1, so a single input is sufficient
+		// 		2. totalValue > totalSpend, so there will be change and 2 outputs, therefor in order to not struggle with --
+		//		   2.1 go-nodes dust patch we try and find at least 2 inputs (even though the next one is not necessary in terms of spend value)
+		// 		   2.2 KIP9 we try and make sure that the change amount is not too small
+		if !isSendAll && (totalValue == totalSpend || (totalValue >= totalSpend+minChangeTarget && len(selectedUTXOs) > 1)) {
+			return false, nil
+		}
+
+		return true, nil
+	}
+
+	shouldContinue := true
+	for _, utxo := range preSelectedUTXOs {
+		shouldContinue, err = iteration(utxo, false)
+		if err != nil {
+			return nil, 0, 0, err
+		}
+
+		if !shouldContinue {
+			break
+		}
+	}
+
+	if shouldContinue {
+		for _, utxo := range s.utxosSortedByAmount {
+			shouldContinue, err := iteration(utxo, true)
+			if err != nil {
+				return nil, 0, 0, err
+			}
+
+			if !shouldContinue {
+				break
+			}
+		}
+	}
+
+	var totalSpend uint64
+	if isSendAll {
+		totalSpend = totalValue
+		totalReceived = totalValue - fee
+	} else {
+		totalSpend = spendAmount + fee
+		totalReceived = spendAmount
+	}
+	if totalValue < totalSpend {
+		return nil, 0, 0, errors.Errorf("Insufficient funds for send: %f required, while only %f available",
+			float64(totalSpend)/constants.SompiPerEntropyx, float64(totalValue)/constants.SompiPerEntropyx)
+	}
+
+	return selectedUTXOs, totalReceived, totalValue - totalSpend, nil
+}
+
+func (s *server) estimateFee(selectedUTXOs []*libentropyxwallet.UTXO, feeRate float64, maxFee uint64, recipientValue uint64) (uint64, error) {
+	fakePubKey := [util.PublicKeySizeECDSA]byte{}
+	fakeAddr, err := util.NewAddressPublicKeyECDSA(fakePubKey[:], s.params.Prefix) // We assume the worst case where the recipient address is ECDSA. In this case the scriptPubKey will be the longest.
+	if err != nil {
+		return 0, err
+	}
+
+	totalValue := uint64(0)
+	for _, utxo := range selectedUTXOs {
+		totalValue += utxo.UTXOEntry.Amount()
+	}
+
+	// This is an approximation for the distribution of value between the recipient output and the change output.
+	var mockPayments []*libentropyxwallet.Payment
+	if totalValue > recipientValue {
+		mockPayments = []*libentropyxwallet.Payment{
+			{
+				Address: fakeAddr,
+				Amount:  recipientValue,
+			},
+			{
+				Address: fakeAddr,
+				Amount:  totalValue - recipientValue, // We ignore the fee since we expect it to be insignificant in mass calculation.
+			},
+		}
+	} else {
+		mockPayments = []*libentropyxwallet.Payment{
+			{
+				Address: fakeAddr,
+				Amount:  totalValue,
+			},
+		}
+	}
+
+	mockTx, err := libentropyxwallet.CreateUnsignedTransaction(s.keysFile.ExtendedPublicKeys,
+		s.keysFile.MinimumSignatures,
+		mockPayments, selectedUTXOs)
+	if err != nil {
+		return 0, err
+	}
+
+	mass, err := s.estimateMassAfterSignatures(mockTx)
+	if err != nil {
+		return 0, err
+	}
+
+	return min(uint64(math.Ceil(float64(mass)*feeRate)), maxFee), nil
+}
+
+func (s *server) estimateFeePerInput(feeRate float64) (uint64, error) {
+	mockUTXO := &libentropyxwallet.UTXO{
+		Outpoint: &externalapi.DomainOutpoint{
+			TransactionID: externalapi.DomainTransactionID{},
+			Index:         0,
+		},
+		UTXOEntry: utxo.NewUTXOEntry(1, &externalapi.ScriptPublicKey{
+			Script:  nil,
+			Version: 0,
+		}, false, 0),
+		DerivationPath: "m",
+	}
+
+	mockTx, err := libentropyxwallet.CreateUnsignedTransaction(s.keysFile.ExtendedPublicKeys,
+		s.keysFile.MinimumSignatures,
+		nil, []*libentropyxwallet.UTXO{mockUTXO})
+	if err != nil {
+		return 0, err
+	}
+
+	// Here we use compute mass to avoid dividing by zero. This is ok since `s.estimateFeePerInput` is only used
+	// in the case of compound transactions that have a compute mass higher than its storage mass.
+	mass, err := s.estimateComputeMassAfterSignatures(mockTx)
+	if err != nil {
+		return 0, err
+	}
+
+	mockTxWithoutUTXO, err := libentropyxwallet.CreateUnsignedTransaction(s.keysFile.ExtendedPublicKeys,
+		s.keysFile.MinimumSignatures,
+		nil, nil)
+	if err != nil {
+		return 0, err
+	}
+
+	massWithoutUTXO, err := s.estimateComputeMassAfterSignatures(mockTxWithoutUTXO)
+	if err != nil {
+		return 0, err
+	}
+
+	inputMass := mass - massWithoutUTXO
+
+	return uint64(float64(inputMass) * feeRate), nil
+}
+
+func walletAddressesContain(addresses []*walletAddress, contain *walletAddress) bool {
+	for _, address := range addresses {
+		if *address == *contain {
+			return true
+		}
+	}
+
+	return false
+}
