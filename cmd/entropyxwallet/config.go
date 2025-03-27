@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/jessevdk/go-flags"
 	"github.com/k1pool/entropyxd/infrastructure/config"
 	"github.com/pkg/errors"
 )

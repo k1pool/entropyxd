@@ -20,6 +20,7 @@ import (
 	"github.com/k1pool/entropyxd/domain/miningmanager/mempool"
 	"github.com/k1pool/entropyxd/util"
 	"github.com/k1pool/entropyxd/util/txmass"
+	"github.com/kaspanet/go-secp256k1"
 	"github.com/pkg/errors"
 )
 
