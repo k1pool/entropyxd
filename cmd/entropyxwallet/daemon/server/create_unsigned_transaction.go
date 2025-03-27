@@ -130,7 +130,7 @@ func (s *server) createUnsignedTransactions(address string, amount uint64, isSen
 		return nil, err
 	}
 
-	selectedUTXOs, spendValue, changeSompi, err := s.selectUTXOs(amount, isSendAll, feeRate, maxFee, burnFee, fromAddresses)
+	selectedUTXOs, spendValue, changeSompi, err := s.selectUTXOs(amount, isSendAll, feeRate, maxFee, burnFee, fromAddresses, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +200,7 @@ func (s *server) createUnsignedMultiTransactions(addresses []string, amounts []u
 		return nil, err
 	}
 
-	selectedUTXOs, _, changeSompi, err := s.selectUTXOs(totalAmount, isSendAll, feeRate, maxFee, burnFee, fromAddresses)
+	selectedUTXOs, _, changeSompi, err := s.selectUTXOs(totalAmount, isSendAll, feeRate, maxFee, burnFee, fromAddresses, addresses, amounts)
 	if err != nil {
 		return nil, err
 	}
@@ -241,12 +241,12 @@ func (s *server) createUnsignedMultiTransactions(addresses []string, amounts []u
 	return unsignedTransactions, nil
 }
 
-func (s *server) selectUTXOs(spendAmount uint64, isSendAll bool, feeRate float64, maxFee uint64, burnFee uint64, fromAddresses []*walletAddress) (
+func (s *server) selectUTXOs(spendAmount uint64, isSendAll bool, feeRate float64, maxFee uint64, burnFee uint64, fromAddresses []*walletAddress, addresses []string, amounts []uint64) (
 	selectedUTXOs []*libentropyxwallet.UTXO, totalReceived uint64, changeSompi uint64, err error) {
-	return s.selectUTXOsWithPreselected(nil, map[externalapi.DomainOutpoint]struct{}{}, spendAmount, isSendAll, feeRate, maxFee, burnFee, fromAddresses)
+	return s.selectUTXOsWithPreselected(nil, map[externalapi.DomainOutpoint]struct{}{}, spendAmount, isSendAll, feeRate, maxFee, burnFee, fromAddresses, addresses, amounts)
 }
 
-func (s *server) selectUTXOsWithPreselected(preSelectedUTXOs []*walletUTXO, allowUsed map[externalapi.DomainOutpoint]struct{}, spendAmount uint64, isSendAll bool, feeRate float64, maxFee uint64, burnFee uint64, fromAddresses []*walletAddress) (
+func (s *server) selectUTXOsWithPreselected(preSelectedUTXOs []*walletUTXO, allowUsed map[externalapi.DomainOutpoint]struct{}, spendAmount uint64, isSendAll bool, feeRate float64, maxFee uint64, burnFee uint64, fromAddresses []*walletAddress, addresses []string, amounts []uint64) (
 	selectedUTXOs []*libentropyxwallet.UTXO, totalReceived uint64, changeSompi uint64, err error) {
 
 	preSelectedSet := make(map[externalapi.DomainOutpoint]struct{})
@@ -295,7 +295,7 @@ func (s *server) selectUTXOsWithPreselected(preSelectedUTXOs []*walletUTXO, allo
 			estimatedRecipientValue = totalValue
 		}
 
-		fee, err = s.estimateFee(selectedUTXOs, feeRate, maxFee, estimatedRecipientValue)
+		fee, err = s.estimateFee(selectedUTXOs, feeRate, maxFee, estimatedRecipientValue, addresses, amounts)
 		fee += burnFee
 
 		if err != nil {
@@ -356,7 +356,7 @@ func (s *server) selectUTXOsWithPreselected(preSelectedUTXOs []*walletUTXO, allo
 	return selectedUTXOs, totalReceived, totalValue - totalSpend, nil
 }
 
-func (s *server) estimateFee(selectedUTXOs []*libentropyxwallet.UTXO, feeRate float64, maxFee uint64, recipientValue uint64) (uint64, error) {
+func (s *server) estimateFee(selectedUTXOs []*libentropyxwallet.UTXO, feeRate float64, maxFee uint64, recipientValue uint64, addresses []string, amounts []uint64) (uint64, error) {
 	fakePubKey := [util.PublicKeySizeECDSA]byte{}
 	fakeAddr, err := util.NewAddressPublicKeyECDSA(fakePubKey[:], s.params.Prefix) // We assume the worst case where the recipient address is ECDSA. In this case the scriptPubKey will be the longest.
 	if err != nil {
@@ -369,25 +369,25 @@ func (s *server) estimateFee(selectedUTXOs []*libentropyxwallet.UTXO, feeRate fl
 	}
 
 	// This is an approximation for the distribution of value between the recipient output and the change output.
+	var totalRecipientValue uint64
 	var mockPayments []*libentropyxwallet.Payment
+	for i, to := range addresses {
+		toAddr, err := util.DecodeAddress(to, s.params.Prefix)
+		if err != nil {
+			return 0, err
+		}
+		totalRecipientValue += amounts[i]
+		mockPayments = append(mockPayments, &libentropyxwallet.Payment{
+			Address: toAddr,
+			Amount:  amounts[i],
+		})
+	}
+
 	if totalValue > recipientValue {
-		mockPayments = []*libentropyxwallet.Payment{
-			{
-				Address: fakeAddr,
-				Amount:  recipientValue,
-			},
-			{
-				Address: fakeAddr,
-				Amount:  totalValue - recipientValue, // We ignore the fee since we expect it to be insignificant in mass calculation.
-			},
-		}
-	} else {
-		mockPayments = []*libentropyxwallet.Payment{
-			{
-				Address: fakeAddr,
-				Amount:  totalValue,
-			},
-		}
+		mockPayments = append(mockPayments, &libentropyxwallet.Payment{
+			Address: fakeAddr,
+			Amount:  totalValue - totalRecipientValue,
+		})
 	}
 
 	mockTx, err := libentropyxwallet.CreateUnsignedTransaction(s.keysFile.ExtendedPublicKeys,

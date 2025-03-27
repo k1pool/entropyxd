@@ -1,7 +1,6 @@
 package server
 
 import (
-	"github.com/kaspanet/go-secp256k1"
 	"github.com/pkg/errors"
 
 	"github.com/k1pool/entropyxd/cmd/entropyxwallet/libentropyxwallet"
@@ -72,7 +71,7 @@ func (s *server) mergeTransaction(
 		totalValue += output.Value
 	}
 	// We're overestimating a bit by assuming that any transaction will have a change output
-	fee, err := s.estimateFee(utxos, feeRate, maxFee, sentValue)
+	fee, err := s.estimateFee(utxos, feeRate, maxFee, sentValue, nil, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +254,7 @@ func (s *server) createSplitTransaction(transaction *serialization.PartiallySign
 		totalSompi += selectedUTXOs[i-startIndex].UTXOEntry.Amount()
 	}
 	if len(selectedUTXOs) != 0 {
-		fee, err := s.estimateFee(selectedUTXOs, feeRate, maxFee, totalSompi)
+		fee, err := s.estimateFee(selectedUTXOs, feeRate, maxFee, totalSompi, nil, nil)
 		if err != nil {
 			return nil, err
 		}
