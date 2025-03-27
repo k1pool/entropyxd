@@ -9,7 +9,6 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/btcsuite/go-socks/socks"
-	"github.com/jessevdk/go-flags"
 	"github.com/k1pool/entropyxd/domain/consensus/model/externalapi"
 	"github.com/k1pool/entropyxd/domain/dagconfig"
 	"github.com/k1pool/entropyxd/infrastructure/logger"
@@ -90,7 +89,7 @@ type Flags struct {
 	BanDuration                     time.Duration `long:"banduration" description:"How long to ban misbehaving peers. Valid time units are {s, m, h}. Minimum 1 second"`
 	BanThreshold                    uint32        `long:"banthreshold" description:"Maximum allowed ban score before disconnecting and banning misbehaving peers."`
 	Whitelists                      []string      `long:"whitelist" description:"Add an IP network or IP that will not be banned. (eg. 192.168.1.0/24 or ::1)"`
-	RPCListeners                    []string      `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 16110, testnet: 16210)"`
+	RPCListeners                    []string      `long:"rpclisten" description:"Add an interface/port to listen for RPC connections (default port: 39138, testnet: 16210)"`
 	RPCCert                         string        `long:"rpccert" description:"File containing the certificate file"`
 	RPCKey                          string        `long:"rpckey" description:"File containing the certificate key"`
 	RPCMaxClients                   int           `long:"rpcmaxclients" description:"Max number of RPC clients for standard connections"`

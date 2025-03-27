@@ -211,8 +211,8 @@ var MainnetParams = Params{
 	K:           defaultGHOSTDAGK,
 	Name:        "entropyx-mainnet",
 	Net:         appmessage.Mainnet,
-	RPCPort:     "16110",
-	DefaultPort: "16111",
+	RPCPort:     "39138",
+	DefaultPort: "39139",
 	DNSSeeds: []string{
 		// This DNS seeder is run by Wolfie
 		"mainnet-dnsseed.kas.pa",
