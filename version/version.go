@@ -9,7 +9,7 @@ import (
 const validCharacters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-"
 
 const (
-	appMajor uint = 0
+	appMajor uint = 1
 	appMinor uint = 15
 	appPatch uint = 2
 )
