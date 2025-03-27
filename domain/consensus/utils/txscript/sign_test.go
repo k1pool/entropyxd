@@ -12,7 +12,7 @@ import (
 
 	"github.com/k1pool/entropyxd/domain/consensus/utils/consensushashing"
 
-	"github.com/entropyxnet/go-secp256k1"
+	"github.com/kaspanet/go-secp256k1"
 	"github.com/pkg/errors"
 
 	"github.com/k1pool/entropyxd/domain/dagconfig"

@@ -6,7 +6,6 @@ package txscript
 
 import (
 	"crypto/rand"
-	"github.com/entropyxnet/go-secp256k1"
 	"testing"
 )
 

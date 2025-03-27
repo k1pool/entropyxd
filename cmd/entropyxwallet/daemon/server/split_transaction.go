@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/entropyxnet/go-secp256k1"
+	"github.com/kaspanet/go-secp256k1"
 	"github.com/pkg/errors"
 
 	"github.com/k1pool/entropyxd/cmd/entropyxwallet/libentropyxwallet"

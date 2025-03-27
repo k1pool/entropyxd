@@ -1,9 +1,9 @@
 # -- multistage docker build: stage #1: build stage
 FROM golang:1.23-alpine AS build
 
-RUN mkdir -p /go/src/github.com/entropyxnet/entropyxd
+RUN mkdir -p /go/src/github.com/kaspanet/entropyxd
 
-WORKDIR /go/src/github.com/entropyxnet/entropyxd
+WORKDIR /go/src/github.com/kaspanet/entropyxd
 
 RUN apk add --no-cache curl git openssh binutils gcc musl-dev
 

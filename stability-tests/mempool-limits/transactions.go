@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/entropyxnet/go-secp256k1"
 	"github.com/k1pool/entropyxd/domain/consensus/model/externalapi"
 	"github.com/k1pool/entropyxd/domain/consensus/utils/consensushashing"
 	"github.com/k1pool/entropyxd/domain/consensus/utils/constants"
@@ -17,6 +16,7 @@ import (
 	"github.com/k1pool/entropyxd/infrastructure/network/rpcclient"
 	"github.com/k1pool/entropyxd/stability-tests/common/mine"
 	"github.com/k1pool/entropyxd/util"
+	"github.com/kaspanet/go-secp256k1"
 )
 
 const (

@@ -1,9 +1,9 @@
 package multiset
 
 import (
-	"github.com/entropyxnet/go-muhash"
 	"github.com/k1pool/entropyxd/domain/consensus/model"
 	"github.com/k1pool/entropyxd/domain/consensus/model/externalapi"
+	"github.com/kaspanet/go-muhash"
 	"github.com/pkg/errors"
 )
 

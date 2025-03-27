@@ -5,10 +5,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/entropyxnet/go-secp256k1"
 	"github.com/k1pool/entropyxd/cmd/entropyxwallet/libentropyxwallet/bip32"
 	"github.com/k1pool/entropyxd/domain/dagconfig"
 	"github.com/k1pool/entropyxd/util"
+	"github.com/kaspanet/go-secp256k1"
 	"github.com/pkg/errors"
 )
 

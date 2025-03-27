@@ -6,9 +6,9 @@ FROM ${ENTROPYXMINER_IMAGE} as entropyxminer
 
 FROM golang:1.23-alpine
 
-RUN mkdir -p /go/src/github.com/entropyxnet/entropyxd
+RUN mkdir -p /go/src/github.com/kaspanet/entropyxd
 
-WORKDIR /go/src/github.com/entropyxnet/entropyxd
+WORKDIR /go/src/github.com/kaspanet/entropyxd
 
 RUN apk add bash build-base git
 

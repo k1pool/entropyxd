@@ -5,11 +5,11 @@
 package dagconfig
 
 import (
-	"github.com/entropyxnet/go-muhash"
 	"github.com/k1pool/entropyxd/domain/consensus/model/externalapi"
 	"github.com/k1pool/entropyxd/domain/consensus/utils/blockheader"
 	"github.com/k1pool/entropyxd/domain/consensus/utils/subnetworks"
 	"github.com/k1pool/entropyxd/domain/consensus/utils/transactionhelper"
+	"github.com/kaspanet/go-muhash"
 	"math/big"
 )
 

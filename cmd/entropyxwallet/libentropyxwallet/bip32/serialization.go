@@ -2,8 +2,8 @@ package bip32
 
 import (
 	"encoding/binary"
-	"github.com/entropyxnet/go-secp256k1"
 	"github.com/k1pool/entropyxd/cmd/entropyxwallet/libentropyxwallet/bip32/base58"
+	"github.com/kaspanet/go-secp256k1"
 	"github.com/pkg/errors"
 )
 

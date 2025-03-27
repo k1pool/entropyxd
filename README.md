@@ -1,13 +1,13 @@
 # DEPRECATED
 
-The full node reference implementation was [rewritten in Rust](https://github.com/entropyxnet/rusty-entropyx), as a result, the Go implementation is now deprecated.
+The full node reference implementation was [rewritten in Rust](https://github.com/kaspanet/rusty-entropyx), as a result, the Go implementation is now deprecated.
 
-PLEASE NOTE: Any pull requests or issues that will be opened in this repository will be closed without treatment, except for issues or pull requests related to the entropyxwallet, which remains maintained. In any other case, please use the [Rust implementation](https://github.com/entropyxnet/rusty-entropyx) instead.
+PLEASE NOTE: Any pull requests or issues that will be opened in this repository will be closed without treatment, except for issues or pull requests related to the entropyxwallet, which remains maintained. In any other case, please use the [Rust implementation](https://github.com/kaspanet/rusty-entropyx) instead.
 
 # Entropyxd
 
 [![ISC License](http://img.shields.io/badge/license-ISC-blue.svg)](https://choosealicense.com/licenses/isc/)
-[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/entropyxnet/entropyxd)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](http://godoc.org/github.com/kaspanet/entropyxd)
 
 Entropyxd was the reference full node Entropyx implementation written in Go (golang).
 
@@ -35,7 +35,7 @@ $ go version
 - Run the following commands to obtain and install entropyxd including all dependencies:
 
 ```bash
-$ git clone https://github.com/entropyxnet/entropyxd
+$ git clone https://github.com/kaspanet/entropyxd
 $ cd entropyxd
 $ go install . ./cmd/...
 ```
@@ -62,11 +62,11 @@ Join our discord server using the following link: https://discord.gg/YNYnNN5Pf2
 The [integrated github issue tracker](https://github.com/k1pool/entropyxd/issues)
 is used for this project.
 
-Issue priorities may be seen at https://github.com/orgs/entropyxnet/projects/4
+Issue priorities may be seen at https://github.com/orgs/kaspanet/projects/4
 
 ## Documentation
 
-The [documentation](https://github.com/entropyxnet/docs) is a work-in-progress
+The [documentation](https://github.com/kaspanet/docs) is a work-in-progress
 
 ## License
 

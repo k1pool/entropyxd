@@ -22,7 +22,7 @@ $ go version
 - Run the following commands to obtain and install entropyxd including all dependencies:
 
 ```bash
-$ git clone https://github.com/entropyxnet/entropyxd
+$ git clone https://github.com/kaspanet/entropyxd
 $ cd entropyxd/cmd/entropyxminer
 $ go install .
 ```

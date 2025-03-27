@@ -15,8 +15,8 @@ import (
 
 	"golang.org/x/crypto/blake2b"
 
-	"github.com/entropyxnet/go-secp256k1"
 	"github.com/k1pool/entropyxd/domain/consensus/utils/constants"
+	"github.com/kaspanet/go-secp256k1"
 )
 
 // An opcode defines the information related to a txscript opcode. opfunc, if
