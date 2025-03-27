@@ -8,15 +8,8 @@ import (
 	// _ "embed" is necessary for the go:embed feature.
 	_ "embed"
 	"fmt"
-	"net"
-	"os"
-	"path/filepath"
-	"runtime"
-	"strconv"
-	"strings"
-	"time"
-
 	"github.com/btcsuite/go-socks/socks"
+	"github.com/jessevdk/go-flags"
 	"github.com/k1pool/entropyxd/domain/consensus/model/externalapi"
 	"github.com/k1pool/entropyxd/domain/dagconfig"
 	"github.com/k1pool/entropyxd/infrastructure/logger"
@@ -24,6 +17,13 @@ import (
 	"github.com/k1pool/entropyxd/util/network"
 	"github.com/k1pool/entropyxd/version"
 	"github.com/pkg/errors"
+	"net"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
 )
 
 const (

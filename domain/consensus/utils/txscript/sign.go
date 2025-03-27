@@ -7,6 +7,7 @@ package txscript
 import (
 	"github.com/k1pool/entropyxd/domain/consensus/model/externalapi"
 	"github.com/k1pool/entropyxd/domain/consensus/utils/consensushashing"
+	"github.com/kaspanet/go-secp256k1"
 	"github.com/pkg/errors"
 
 	"github.com/k1pool/entropyxd/domain/dagconfig"
