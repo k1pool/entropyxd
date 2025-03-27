@@ -9,6 +9,7 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/btcsuite/go-socks/socks"
+	"github.com/jessevdk/go-flags"
 	"github.com/k1pool/entropyxd/domain/consensus/model/externalapi"
 	"github.com/k1pool/entropyxd/domain/dagconfig"
 	"github.com/k1pool/entropyxd/infrastructure/logger"
