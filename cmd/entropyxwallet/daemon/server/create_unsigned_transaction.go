@@ -402,7 +402,7 @@ func (s *server) estimateFee(selectedUTXOs []*libentropyxwallet.UTXO, feeRate fl
 	}
 
 	log.Infof("feeRate: %d", feeRate)
-	return min(uint64(math.Ceil(float64(mass)*feeRate)+burnFee+50), maxFee), nil
+	return min(uint64(math.Ceil(float64(mass)*feeRate)+burnFee+260), maxFee), nil
 }
 
 func (s *server) estimateFeePerInput(feeRate float64) (uint64, error) {
