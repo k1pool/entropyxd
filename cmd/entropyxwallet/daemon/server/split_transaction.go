@@ -1,7 +1,6 @@
 package server
 
 import (
-	"github.com/kaspanet/go-secp256k1"
 	"github.com/pkg/errors"
 
 	"github.com/k1pool/entropyxd/cmd/entropyxwallet/libentropyxwallet"
@@ -120,6 +119,7 @@ func (s *server) transactionFeeRate(psTx *serialization.PartiallySignedTransacti
 		return 0, errors.Errorf("Transaction don't have enough funds to pay for the outputs")
 	}
 	fee := totalIns - totalOuts
+	log.Infof("transactionFeeRate: %d", fee)
 	mass, err := s.estimateComputeMassAfterSignatures(psTx)
 	if err != nil {
 		return 0, err
