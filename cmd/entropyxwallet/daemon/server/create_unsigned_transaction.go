@@ -347,7 +347,7 @@ func (s *server) selectUTXOsWithPreselected(preSelectedUTXOs []*walletUTXO, allo
 		totalSpend = spendAmount + fee + burnFee
 		totalReceived = spendAmount
 	}
-	if totalValue < (totalSpend + burnFee) {
+	if totalValue < totalSpend {
 		return nil, 0, 0, errors.Errorf("Insufficient funds for send: %f required, while only %f available",
 			float64(totalSpend)/constants.SompiPerEntropyx, float64(totalValue)/constants.SompiPerEntropyx)
 	}
