@@ -296,7 +296,6 @@ func (s *server) selectUTXOsWithPreselected(preSelectedUTXOs []*walletUTXO, allo
 		}
 
 		fee, err = s.estimateFee(selectedUTXOs, feeRate, maxFee, estimatedRecipientValue, addresses, amounts)
-		fee += burnFee + 50
 
 		if err != nil {
 			return false, err
@@ -343,12 +342,12 @@ func (s *server) selectUTXOsWithPreselected(preSelectedUTXOs []*walletUTXO, allo
 	var totalSpend uint64
 	if isSendAll {
 		totalSpend = totalValue
-		totalReceived = totalValue - fee
+		totalReceived = totalValue - fee - burnFee
 	} else {
-		totalSpend = spendAmount + fee
+		totalSpend = spendAmount + fee + burnFee
 		totalReceived = spendAmount
 	}
-	if totalValue < totalSpend {
+	if totalValue < (totalSpend + burnFee) {
 		return nil, 0, 0, errors.Errorf("Insufficient funds for send: %f required, while only %f available",
 			float64(totalSpend)/constants.SompiPerEntropyx, float64(totalValue)/constants.SompiPerEntropyx)
 	}
