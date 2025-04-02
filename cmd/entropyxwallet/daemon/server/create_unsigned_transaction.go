@@ -342,7 +342,7 @@ func (s *server) selectUTXOsWithPreselected(preSelectedUTXOs []*walletUTXO, allo
 	var totalSpend uint64
 	if isSendAll {
 		totalSpend = totalValue
-		totalReceived = totalValue - fee
+		totalReceived = totalValue - fee - burnFee
 	} else {
 		totalSpend = spendAmount + fee
 		totalReceived = spendAmount
